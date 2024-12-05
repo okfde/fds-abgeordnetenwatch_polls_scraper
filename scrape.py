@@ -14,7 +14,7 @@ import requests
 # pylint: disable=invalid-name
 
 legislature = 132
-range_end = 1
+range_end = 1000
 
 URL = f"https://www.abgeordnetenwatch.de/api/v2/polls?field_legislature%5Bentity.id%5D={legislature}&range_end={range_end}"
 
