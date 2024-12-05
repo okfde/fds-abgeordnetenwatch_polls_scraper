@@ -56,7 +56,8 @@ for poll in polls["data"]:
             vote_results[poll["label"]]["meta"] = {
                 "id": i,
                 "url": poll['abgeordnetenwatch_url'],
-                "topics": []
+                "topics": [],
+                "date": poll['field_poll_date']
             }
 
             if "field_topics" in poll:
@@ -95,13 +96,13 @@ f.close()
 
 # csv
 csv_lines = []
-csv_lines.append("id, vote, fraction, no_show, yes, no, abstain, topics, URL")
+csv_lines.append("id, vote, fraction, no_show, yes, no, abstain, topics, date, URL")
 for vote in vote_results:
     for fraction in vote_results[vote]:
         if fraction == "meta":
             continue
         vote_name = vote.replace("\"", "'")
-        csv_lines.append(f'{vote_results[vote]["meta"]["id"]}, "{vote_name}", "{fraction}", "{vote_results[vote][fraction]["no_show"]}", "{vote_results[vote][fraction]["yes"]}", "{vote_results[vote][fraction]["no"]}", "{vote_results[vote][fraction]["abstain"]}", "{vote_results[vote]["meta"]["topics"]}", "{vote_results[vote]["meta"]["url"]}"')
+        csv_lines.append(f'{vote_results[vote]["meta"]["id"]}, "{vote_name}", "{fraction}", "{vote_results[vote][fraction]["no_show"]}", "{vote_results[vote][fraction]["yes"]}", "{vote_results[vote][fraction]["no"]}", "{vote_results[vote][fraction]["abstain"]}", "{vote_results[vote]["meta"]["topics"]}", "{vote_results[vote]["meta"]["date"]}", "{vote_results[vote]["meta"]["url"]}"')
 
 with open("votes.csv", "w", encoding="utf-8") as f:
     for line in csv_lines:
