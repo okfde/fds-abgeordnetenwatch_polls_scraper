@@ -60,10 +60,13 @@ for poll in polls["data"]:
                 "date": poll['field_poll_date']
             }
 
-            if "field_topics" in poll:
+            if poll["field_topics"] is not None:
                 for topic in poll["field_topics"]:
                     vote_results[poll["label"]]["meta"]["topics"].append(topic["label"])
                     print(f"              * {topic['label']}")
+            else:
+                vote_results[poll["label"]]["meta"]["topics"].append("None")
+                print(f"              * None")
 
         for vote in poll_data["data"]["related_data"]["votes"]:
             if not "label" in vote["fraction"]:
