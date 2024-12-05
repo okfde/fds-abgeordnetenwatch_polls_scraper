@@ -14,7 +14,7 @@ import requests
 # pylint: disable=invalid-name
 
 legislature = 132
-range_end = 1000
+range_end = 1
 
 URL = f"https://www.abgeordnetenwatch.de/api/v2/polls?field_legislature%5Bentity.id%5D={legislature}&range_end={range_end}"
 
@@ -48,7 +48,6 @@ for poll in polls["data"]:
         print(f"Poll       : {poll['label']}")
         print(f"URL        : {poll['abgeordnetenwatch_url']}")
         print(f"Legislature: {poll['field_legislature']['label']}")
-        print(f"Date       : {poll['field_poll_date']}")
         print(f"Topics     :")
 
         if not poll["label"] in vote_results:
@@ -73,21 +72,29 @@ for poll in polls["data"]:
                 vote["fraction"] = {
                     "label": "Unknown"
                 }
-            if not vote["fraction"]["label"] in vote_results[poll["label"]]:
-                vote_results[poll["label"]][vote["fraction"]["label"]] = {
+            if not "votes" in vote_results[poll["label"]]:
+                vote_results[poll["label"]]["votes"] = {}
+            if not vote["fraction"]["label"] in vote_results[poll["label"]]["votes"]:
+                vote_results[poll["label"]]["votes"][vote["fraction"]["label"]] = {
                     "no_show": 0,
                     "yes": 0,
                     "no": 0,
                     "abstain": 0
                 }
+            vote_results[poll["label"]]["votes"][vote["fraction"]["label"]][vote["vote"]] = vote_results[poll["label"]]["votes"][vote["fraction"]["label"]][vote["vote"]] + 1
 
-            vote_results[poll["label"]][vote["fraction"]["label"]][vote["vote"]] = vote_results[poll["label"]][vote["fraction"]["label"]][vote["vote"]] + 1
+        print("Votes      :")
+        for pf in vote_results[poll["label"]]["votes"]:
+            print(f'             * {pf}')
+            for key, value in vote_results[poll["label"]]["votes"][pf].items():
+                print(f'               * {key}: {value}')
+        print(f"Date       : {poll['field_poll_date']}")
+        print("")
     except Exception as e:
         err = err + 1
         print(f"Could not fully parse poll {i}")
+        pprint(poll)
         print(traceback.format_exc())
-
-    print("")
 
 if err > 0:
     print(f"{err} polls could not be fully parsed")
@@ -101,11 +108,9 @@ f.close()
 csv_lines = []
 csv_lines.append("id, vote, fraction, no_show, yes, no, abstain, topics, date, URL")
 for vote in vote_results:
-    for fraction in vote_results[vote]:
-        if fraction == "meta":
-            continue
+    for fraction in vote_results[vote]["votes"]:
         vote_name = vote.replace("\"", "'")
-        csv_lines.append(f'{vote_results[vote]["meta"]["id"]}, "{vote_name}", "{fraction}", "{vote_results[vote][fraction]["no_show"]}", "{vote_results[vote][fraction]["yes"]}", "{vote_results[vote][fraction]["no"]}", "{vote_results[vote][fraction]["abstain"]}", "{vote_results[vote]["meta"]["topics"]}", "{vote_results[vote]["meta"]["date"]}", "{vote_results[vote]["meta"]["url"]}"')
+        csv_lines.append(f'{vote_results[vote]["meta"]["id"]}, "{vote_name}", "{fraction}", "{vote_results[vote]["votes"][fraction]["no_show"]}", "{vote_results[vote]["votes"][fraction]["yes"]}", "{vote_results[vote]["votes"][fraction]["no"]}", "{vote_results[vote]["votes"][fraction]["abstain"]}", "{vote_results[vote]["meta"]["topics"]}", "{vote_results[vote]["meta"]["date"]}", "{vote_results[vote]["meta"]["url"]}"')
 
 with open("votes.csv", "w", encoding="utf-8") as f:
     for line in csv_lines:
