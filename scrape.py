@@ -15,10 +15,11 @@ import requests
 
 legislature = 132
 range_end = 1000
+range_start = 0
 
-URL = f"https://www.abgeordnetenwatch.de/api/v2/polls?field_legislature%5Bentity.id%5D={legislature}&range_end={range_end}"
+URL = f"https://www.abgeordnetenwatch.de/api/v2/polls?field_legislature%5Bentity.id%5D={legislature}&range_end={range_end}&range_start={range_start}"
 
-resp = requests.get(url=URL)
+resp = requests.get(url=URL, timeout=60)
 polls = resp.json()
 
 if "meta" in polls:
@@ -36,7 +37,7 @@ for poll in polls["data"]:
         "related_data": "votes",
         "range_end": 1
     }
-    poll_resp = requests.get(url=POLL_URL, params=params)
+    poll_resp = requests.get(url=POLL_URL, params=params, timeout=60)
     poll_data = poll_resp.json()
 
     if range_end < polls['meta']['result']['count']:
@@ -48,42 +49,54 @@ for poll in polls["data"]:
         print(f"Poll       : {poll['label']}")
         print(f"URL        : {poll['abgeordnetenwatch_url']}")
         print(f"Legislature: {poll['field_legislature']['label']}")
-        print(f"Date       : {poll['field_poll_date']}")
-        print(f"Topics     :")
+        print("Topics     :")
 
-        if not poll["label"] in vote_results:
-            vote_results[poll["label"]] = {}
-            vote_results[poll["label"]]["meta"] = {
+        if not poll["abgeordnetenwatch_url"] in vote_results:
+            vote_results[poll["abgeordnetenwatch_url"]] = {}
+            vote_results[poll["abgeordnetenwatch_url"]]["meta"] = {
                 "id": i,
                 "url": poll['abgeordnetenwatch_url'],
-                "topics": []
+                "label": poll['label'],
+                "topics": [],
+                "date": poll['field_poll_date']
             }
 
-            if "field_topics" in poll:
+            if poll["field_topics"] is not None:
                 for topic in poll["field_topics"]:
-                    vote_results[poll["label"]]["meta"]["topics"].append(topic["label"])
+                    vote_results[poll["abgeordnetenwatch_url"]]["meta"]["topics"].append(topic["abgeordnetenwatch_url"])
                     print(f"              * {topic['label']}")
+            else:
+                vote_results[poll["abgeordnetenwatch_url"]]["meta"]["topics"].append("None")
+                print("              * None")
 
         for vote in poll_data["data"]["related_data"]["votes"]:
             if not "label" in vote["fraction"]:
                 vote["fraction"] = {
                     "label": "Unknown"
                 }
-            if not vote["fraction"]["label"] in vote_results[poll["label"]]:
-                vote_results[poll["label"]][vote["fraction"]["label"]] = {
+            if not "votes" in vote_results[poll["abgeordnetenwatch_url"]]:
+                vote_results[poll["abgeordnetenwatch_url"]]["votes"] = {}
+            if not vote["fraction"]["label"] in vote_results[poll["abgeordnetenwatch_url"]]["votes"]:
+                vote_results[poll["abgeordnetenwatch_url"]]["votes"][vote["fraction"]["label"]] = {
                     "no_show": 0,
                     "yes": 0,
                     "no": 0,
                     "abstain": 0
                 }
+            vote_results[poll["abgeordnetenwatch_url"]]["votes"][vote["fraction"]["label"]][vote["vote"]] = vote_results[poll["abgeordnetenwatch_url"]]["votes"][vote["fraction"]["label"]][vote["vote"]] + 1
 
-            vote_results[poll["label"]][vote["fraction"]["label"]][vote["vote"]] = vote_results[poll["label"]][vote["fraction"]["label"]][vote["vote"]] + 1
+        print("Votes      :")
+        for pf in vote_results[poll["abgeordnetenwatch_url"]]["votes"]:
+            print(f'             * {pf}')
+            for key, value in vote_results[poll["abgeordnetenwatch_url"]]["votes"][pf].items():
+                print(f'               * {key}: {value}')
+        print(f"Date       : {poll['field_poll_date']}")
+        print("")
     except Exception as e:
         err = err + 1
         print(f"Could not fully parse poll {i}")
+        pprint(poll)
         print(traceback.format_exc())
-
-    print("")
 
 if err > 0:
     print(f"{err} polls could not be fully parsed")
@@ -95,13 +108,11 @@ f.close()
 
 # csv
 csv_lines = []
-csv_lines.append("id, vote, fraction, no_show, yes, no, abstain, topics, URL")
+csv_lines.append("id, vote, fraction, no_show, yes, no, abstain, topics, date, URL")
 for vote in vote_results:
-    for fraction in vote_results[vote]:
-        if fraction == "meta":
-            continue
+    for fraction in vote_results[vote]["votes"]:
         vote_name = vote.replace("\"", "'")
-        csv_lines.append(f'{vote_results[vote]["meta"]["id"]}, "{vote_name}", "{fraction}", "{vote_results[vote][fraction]["no_show"]}", "{vote_results[vote][fraction]["yes"]}", "{vote_results[vote][fraction]["no"]}", "{vote_results[vote][fraction]["abstain"]}", "{vote_results[vote]["meta"]["topics"]}", "{vote_results[vote]["meta"]["url"]}"')
+        csv_lines.append(f'{vote_results[vote]["meta"]["id"]}, "{vote_name}", "{fraction}", "{vote_results[vote]["votes"][fraction]["no_show"]}", "{vote_results[vote]["votes"][fraction]["yes"]}", "{vote_results[vote]["votes"][fraction]["no"]}", "{vote_results[vote]["votes"][fraction]["abstain"]}", "{vote_results[vote]["meta"]["topics"]}", "{vote_results[vote]["meta"]["date"]}", "{vote_results[vote]["meta"]["url"]}"')
 
 with open("votes.csv", "w", encoding="utf-8") as f:
     for line in csv_lines:
