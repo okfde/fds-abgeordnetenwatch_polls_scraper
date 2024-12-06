@@ -63,7 +63,7 @@ for poll in polls["data"]:
 
             if poll["field_topics"] is not None:
                 for topic in poll["field_topics"]:
-                    vote_results[poll["abgeordnetenwatch_url"]]["meta"]["topics"].append(topic["abgeordnetenwatch_url"])
+                    vote_results[poll["abgeordnetenwatch_url"]]["meta"]["topics"].append(topic["label"])
                     print(f"              * {topic['label']}")
             else:
                 vote_results[poll["abgeordnetenwatch_url"]]["meta"]["topics"].append("None")
@@ -111,7 +111,7 @@ csv_lines = []
 csv_lines.append("id, vote, fraction, no_show, yes, no, abstain, topics, date, URL")
 for vote in vote_results:
     for fraction in vote_results[vote]["votes"]:
-        vote_name = vote.replace("\"", "'")
+        vote_name = vote_results[vote]["meta"]["label"].replace("\"", "'")
         csv_lines.append(f'{vote_results[vote]["meta"]["id"]}, "{vote_name}", "{fraction}", "{vote_results[vote]["votes"][fraction]["no_show"]}", "{vote_results[vote]["votes"][fraction]["yes"]}", "{vote_results[vote]["votes"][fraction]["no"]}", "{vote_results[vote]["votes"][fraction]["abstain"]}", "{vote_results[vote]["meta"]["topics"]}", "{vote_results[vote]["meta"]["date"]}", "{vote_results[vote]["meta"]["url"]}"')
 
 with open("votes.csv", "w", encoding="utf-8") as f:
