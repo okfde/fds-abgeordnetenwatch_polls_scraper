@@ -64,10 +64,10 @@ for poll in polls["data"]:
             if poll["field_topics"] is not None:
                 for topic in poll["field_topics"]:
                     vote_results[poll["abgeordnetenwatch_url"]]["meta"]["topics"].append(topic["label"])
-                    print(f"              * {topic['label']}")
+                    print(f"             * {topic['label']}")
             else:
                 vote_results[poll["abgeordnetenwatch_url"]]["meta"]["topics"].append("None")
-                print("              * None")
+                print("             * None")
 
         for vote in poll_data["data"]["related_data"]["votes"]:
             if not "label" in vote["fraction"]:
